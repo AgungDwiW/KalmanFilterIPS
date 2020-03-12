@@ -1,0 +1,3 @@
+host = "128.199.246.173"
+user = "root"
+password = "sukolilo10"
