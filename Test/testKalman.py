@@ -29,6 +29,9 @@ def getDistance(rssi, freq):
     #Distance (km) = 10(Free Space Path Loss – 32.44 – 20log10(f))/20
     rssi = abs(rssi)
     d = 10 * (rssi -32.44 -  20 * math.log10(freq))/20
+    # (27.55 - (20 * Math.log10(freqInMHz)) + Math.abs(signalLevelInDb)) / 20.0;
+    #d = 10 ^ ((Ptx - RSSI) / (10 * n))
+    d = math.pow(10, ((18.5-rssi)/(16)))
     return d
 
 def getCoordinate( temp,coordinate):
