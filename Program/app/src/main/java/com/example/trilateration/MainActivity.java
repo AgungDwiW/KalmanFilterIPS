@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static android.os.SystemClock.sleep;
+import static java.lang.Math.pow;
 
 public class MainActivity extends AppCompatActivity {
     //console
@@ -30,19 +31,20 @@ public class MainActivity extends AppCompatActivity {
 
     //wifi scaner
     private WifiManager wifiManager;
-    private ListView listView;
     private int size = 0;
     private List<ScanResult> results;
-    public List<String[]> results_all = new ArrayList<String[]>();
-    public ArrayList<String> arrayList = new ArrayList<>();
-    private ArrayAdapter adapter;
-    public int flag = -1;
-    public scanWifi scan;
+
+    public int flag = 1;
     //cordinates
     public TextView coord;
-    public TextView t_wifi1, t_wifi2, t_wifi3, t_x1, t_x2, t_x3, t_y1, t_y2, t_y3;
     public int x1, x2,x3,y1,y2,y3;
     public Button start;
+    public String BSSID1,BSSID2, BSSID3;
+
+    public TextView dist1,dist2,dist3;
+
+    public double A1, A2, A3;
+    public double N1, N2, N3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,32 +52,39 @@ public class MainActivity extends AppCompatActivity {
         /* ==================
           setting variables
         ======================*/
+        //coord
+        coord = findViewById(R.id.coord);
+        dist1 = findViewById(R.id.dist1);
+        dist2 = findViewById(R.id.dist2);
+        dist3 = findViewById(R.id.dist3);
         //console
         console = findViewById(R.id.console);
         console.setMovementMethod(new ScrollingMovementMethod());
         n=1;
-
-        //wifi credentials
-//        t_wifi1 = findViewById(R.id.wifi1);
-//        t_wifi2 = findViewById(R.id.wifi2);
-//        t_wifi3 = findViewById(R.id.wifi3);
-//        t_x1 = findViewById(R.id.x1);
-//        t_x2 = findViewById(R.id.x2);
-//        t_x3 = findViewById(R.id.x3);
-//        t_y1 = findViewById(R.id.y1);
-//        t_y2 = findViewById(R.id.y2);
-//        t_y3 = findViewById(R.id.y3);
-        x1 = 0;
+        /*
+        SSID	            BSSID       	    A	        N
+        Ephemeral blessing	ce:73:14:c4:7a:28	-63.555	    2.18345215481207
+        Elfais	            18:0f:76:91:f2:72	-47.43	    3.40041922816446
+        TP-LINK_E630	    c0:25:e9:7a:e6:30	-54.685	    2.87070468917083
+         */
+        BSSID1 = "ce:73:14:c4:7a:28";
+        A1 = -63.555;
+        N1 = 2.18345215481207;
+        x1 = 320;
         y1 = 0;
-        x2 = 50;
-        y2 = 100;
-        x3 = 100;
-        y3 = 0;
 
-        //list view
-        listView = findViewById(R.id.wifiList);
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arrayList);
-        listView.setAdapter(adapter);
+        BSSID2 = "18:0f:76:91:f2:72";
+        A2 = -47.43;
+        N2 = 3.40041922816446;
+        x2 = 0;
+        y2 = 460;
+
+
+        BSSID3 = "c0:25:e9:7a:e6:2f";
+        A3 = -54.685;
+        N3 = 2.87070468917083;
+        x3 = 475;
+        y3 = 460;
 
 
         // wifi manager
@@ -94,6 +103,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    public void changeDist(String d1, String d2, String d3){
+        dist1.setText(d1);
+        dist2.setText(d2);
+        dist3.setText(d3);
+    }
+
     public void printConsole(String s){
         // Function to print to console
         console.append(n+": "+ s +"\n");
@@ -111,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         coord.setText(s);
     }
 
-    public double[] getDistance(double r1, double r2, double  r3){
+    public double[] getCoord(double r1, double r2, double  r3){
         double A, B, C, D, E, F, x,y;
         double []  result = {-1,-1};
         A = 2*x2 - 2*x1;
@@ -127,79 +143,52 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
+    public double getDistance(double RSSI, double A,  double N ){
+        return pow(10, -1*((RSSI-A)/(10*N)));
+    }
+
     private class scanWifi extends AsyncTask<String, Void, String> {
         // daemon class to get rssi and freq of certain wifi
-
+        double level1,level2,level3;
+        int counter1 =0 ,counter2 =0 ,counter3=0;
 
         @Override
         protected String doInBackground(String... params) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    printConsole("started;");
+                    printConsole("scanning data;");
                     printConsole("--------------------- ");
                 }
             });
             //main loop
-            int level1,level2,level3;
-            int freq1, freq2, freq3;
-            while(true){
+            level1 = level2 = level3 = 0;
+            for (int x=0; x<100; x++){
                 if (flag == 1){
                     break;}
-                arrayList.clear();
-                level1 = level2 = level3 = -1;
-                freq1 = freq2 = freq3 = -1;
+
                 results = wifiManager.getScanResults();
                 for (ScanResult scanResult : results) {
                     //assigning the rssis
-                    if(scanResult.BSSID.equals("82:2a:69:53:0e:9a") ){
-
-                        level1 = scanResult.level; freq1 = scanResult.frequency;}
-                    else if (scanResult.BSSID.equals("c0:25:e9:7a:e6:30")){
-
-                        level2 = scanResult.level;freq2 = scanResult.frequency;}
-                    else if (scanResult.BSSID.equals("ce:73:14:c4:7a:28")){
-
-                        level3 = scanResult.level;freq3 = scanResult.frequency;}
-                    arrayList.add(scanResult.SSID + " - " + scanResult.BSSID + " - " + scanResult.level);
+                    if(scanResult.BSSID.equals(BSSID1) ){
+                        level1 += scanResult.level; counter1+=1;}
+                    else if (scanResult.BSSID.equals(BSSID2)){
+                        level2 += scanResult.level; counter2+=1;}
+                    else if (scanResult.BSSID.equals(BSSID3)){
+                        level3 += scanResult.level; counter3+=1;}
+                }
+                sleep(10);
+                if (x%10 ==0){
+                    final int xx = x;
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            adapter.notifyDataSetChanged();
+                            printConsole(xx+"/300");
                         }
                     });
                 }
-                //getting the distances
-                final double distance1, distance2, distance3;
-                if (!(level1 == -1 || level2 == -1 || level3 == -1)){
-                    distance1 = Math.pow(10, ((double) freq1 - level1) / (10 * 2));
-                    distance2 = Math.pow(10, ((double) freq2 - level2) / (10 * 2));
-                    distance3 = Math.pow(10, ((double) freq3 - level3) / (10 * 2));
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            printConsole("===================================");
-                            printConsole("distance 1 :" + distance1);
-                            printConsole("distance 2 :" + distance2);
-                            printConsole("distance 3 :" + distance3);
-                            printConsole("===================================");
-
-                        }
-                    });
-                    //======================================================================
-                    //calculate the coordinate
-                    //======================================================================
 
 
-                }
-
-                sleep(1000);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        printConsole("--------------------- ");
-                    }
-                });
             }
             return "aaaa";
         }
@@ -207,31 +196,68 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
+            double dist1,dist2,dist3;
+            final double distance1, distance2, distance3;
+
+            dist1 = dist2 = dist3 = 0;
+            if(counter1 != 0) {
+                level1 = level1 / counter1;
+                dist1 = getDistance(level1, A1, N1) *100;
+            }
+            if(counter2 != 0) {
+                level2 = level2 / counter2;
+                dist2 = getDistance(level2, A2, N2) * 100;
+            }
+            if(counter3 != 0) {
+                level3 = level3 / counter3;
+                dist3 = getDistance(level3, A3, N3) * 100;
+            }
+
+            distance1 = dist1; distance2 = dist2; distance3 = dist3;
+
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    printConsole("scanning done; Current data: " + results_all.size());
+                 changeDist(Math.round(distance1*100)/100+"", Math.round(distance2*100)/100+"", Math.round(distance3*100)/100+"");
                 }
             });
-            // do something with result
+
+            if (!(counter1 == 0 || counter2 == 0 || counter3 == 0)){
+                //======================================================================
+                //calculate the coordinate
+                //======================================================================
+                double[] coord = getCoord(distance1,distance2, distance3);
+                final String coordString = "" +Math.round(coord[0]*100)/100 + "," + Math.round(coord[1]*100)/100;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        printConsole("===================================");
+                        printConsole("rssi1 : " + level1);
+                        printConsole("rssi2 : " + level2);
+                        printConsole("rssi3: " + level3);
+                        printConsole("distance 1 :" + distance1);
+                        printConsole("distance 2 :" + distance2);
+                        printConsole("distance 3 :" + distance3);
+                        printConsole("coordinate : " + coordString);
+                        printConsole("===================================");
+                        changeCoord(coordString);
+                    }
+                });
+            }
+
+            else{
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        printConsole("===================================");
+                        printConsole("rssi missing");
+                        printConsole("===================================");
+                        changeCoord("x,x");
+                    }
+                });
+            }
+
         }
     }
-    BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            results = wifiManager.getScanResults();
-            unregisterReceiver(this);
-            //ArrayList<String> temp = new ArrayList<>();
-            //temp.add(coordinate.getText() +"");
-            for (ScanResult scanResult : results) {
-                //temp.add(scanResult.BSSID );
-                //temp.add(scanResult.level+"");
-                arrayList.add(scanResult.BSSID + " - " + scanResult.level);
-                adapter.notifyDataSetChanged();
-            }
-            //String[] temp2 = new String[temp.size()];
-            //temp2 = temp.toArray(temp2);
-            //results_all.add(temp2);
-        };
-    };
+
 }
