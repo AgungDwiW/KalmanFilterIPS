@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun May 24 15:53:06 2020
+
+@author: temperantia
+"""
+"""
+import random
+from KalmanFilter import KalmanFilter
+
+def linear(x):
+    return 2*x +5
+
+
+coordinate = []
+
+for i in range(50):
+    temp = [i, linear(i) + random.uniform(-5,5)]
+    coordinate.append(temp)
+
+KF = KalmanFilter(0.1, 1, 1, 1, 0.1,0.1)
+
+pred = []
+estim = []
+for item in coordinate:
+    temp_pred= KF.predict().tolist()
+    pred.append(temp_pred)
+    temp_estim = KF.update(item).tolist()
+    estim.append(temp_estim)
+
+import matplotlib.pyplot as plt
+
+x = [i[0] for i in coordinate]
+y = [i[1] for i in coordinate]
+plt.scatter(x, y, c="blue", alpha=0.5)
+
+x = [i[0][0] for i in pred]
+y = [i[0][1] for i in pred[1:]]
+y.insert(0, pred[0][1][0])
+plt.scatter(x, y, c="green", alpha=0.5)
+
+x = [i[0][0] for i in estim]
+y = [i[0][1] for i in estim]
+plt.scatter(x, y, c="yellow", alpha=0.5)
+
+counter = 0
+for i in pred:
+    print(counter)
+    counter+=1
+    print (i[0][1])
+    
+"""
+
+"""
+:param dt: sampling time (time for 1 cycle)
+:param u_x: acceleration in x-direction
+:param u_y: acceleration in y-direction
+:param std_acc: process noise magnitude
+:param x_std_meas: standard deviation of the measurement in x-direction
+:param y_std_meas: standard deviation of the measurement in y-direction
+"""
+
+import numpy as np
+"""
+# Define sampling time
+dt = 0.1
+std_acc= 1
+x_std_meas = 0.1
+y_std_meas = 0.1
+# Define the  control input variables
+u = np.matrix([[1],[1]])
+
+# Intial State
+x = np.matrix([[0], [0], [0], [0]])
+
+# Define the State Transition Matrix A
+A = np.matrix([[1, 0, dt, 0],
+                    [0, 1, 0, dt],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1]])
+
+# Define the Control Input Matrix B
+B = np.matrix([[(dt**2)/2, 0],
+                    [(dt**2)/2,0],
+                    [dt,0],
+                    [0,dt]])
+
+# Define Measurement Mapping Matrix
+H = np.matrix([[1, 0, 0, 0],
+                    [0, 1, 0, 0]])
+
+#Initial Process Noise Covariance
+Q = np.matrix([[(dt**4)/4, 0, (dt**3)/2, 0],
+                    [0, (dt**4)/4, 0, (dt**3)/2],
+                    [(dt**3)/2, 0, dt**2, 0],
+                    [0, (dt**3)/2, 0, dt**2]]) * std_acc**2
+
+#Initial Measurement Noise Covariance
+R = np.matrix([[x_std_meas**2,0],
+                   [0, y_std_meas**2]])
+
+#Initial Covariance Matrix
+P = np.eye(A.shape[1])
+
+                          { 5,-2, 2, 7},
+					      { 1, 0, 0, 3},
+					      {-3, 1, 5, 0},
+					      { 3,-1,-9, 4}};
+    
+testIn = [[5, -2, 2, 7],
+          [1, 0, 0, 3],
+          [-3, 1, 5, 0],
+          [3, -1, -9, 4]]
+
+testIn2 = [[10, -2, 2, 7],
+          [1, 32, 0, 3],
+          [-3, 4, 5, 0],
+          [3, -1, -5, 4]]
+
+npTestIn2 = np.matrix(testIn2)
+npTestIn = np.matrix(testIn)
+print(npTestIn)
+
+print(np.linalg.inv(npTestIn))
+
+print(np.dot(npTestIn, npTestIn2))
+"""
+
+'''
+    File name         : KalmanFilter.py
+    Description       : KalmanFilter class used for object tracking
+    Author            : Rahmad Sadli
+    Date created      : 20/02/2020
+    Python Version    : 3.7
+'''
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+class KalmanFilter(object):
+    def __init__(self, dt, u_x,u_y, std_acc, x_std_meas, y_std_meas):
+        """
+        :param dt: sampling time (time for 1 cycle)
+        :param u_x: acceleration in x-direction
+        :param u_y: acceleration in y-direction
+        :param std_acc: process noise magnitude
+        :param x_std_meas: standard deviation of the measurement in x-direction
+        :param y_std_meas: standard deviation of the measurement in y-direction
+        """
+
+        # Define sampling time
+        dt = 0.1
+        std_acc= 1
+        x_std_meas = 0.1
+        y_std_meas = 0.1
+        u_x = 1
+        u_y = 1
+        # Define the  control input variables
+        u = np.matrix([[u_x],[u_y]])
+
+        # Intial State
+        x = np.matrix([[0], [0], [0], [0]])
+
+        # Define the State Transition Matrix A
+        A = np.matrix([[1, 0, dt, 0],
+                            [0, 1, 0, dt],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, 1]])
+
+        # Define the Control Input Matrix B
+        B = np.matrix([[(dt**2)/2, 0],
+                            [(dt**2)/2,0],
+                            [dt,0],
+                            [0,dt]])
+
+        # Define Measurement Mapping Matrix
+        H = np.matrix([[1, 0, 0, 0],
+                            [0, 1, 0, 0]])
+
+        #Initial Process Noise Covariance
+        Q = np.matrix([[(dt**4)/4, 0, (dt**3)/2, 0],
+                            [0, (dt**4)/4, 0, (dt**3)/2],
+                            [(dt**3)/2, 0, dt**2, 0],
+                            [0, (dt**3)/2, 0, dt**2]]) * std_acc**2
+
+        #Initial Measurement Noise Covariance
+        R = np.matrix([[x_std_meas**2,0],
+                           [0, y_std_meas**2]])
+
+        #Initial Covariance Matrix
+        P = np.eye(A.shape[1])
+
+    def predict(self):
+        # Refer to :Eq.(9) and Eq.(10)  in https://machinelearningspace.com/object-tracking-simple-implementation-of-kalman-filter-in-python/?preview_id=1364&preview_nonce=52f6f1262e&preview=true&_thumbnail_id=1795
+
+        # Update time state
+        #x_k =Ax_(k-1) + Bu_(k-1)     Eq.(9)
+        x = np.dot(A, x) + np.dot(B, u)
+
+        # Calculate error covariance
+        # P= A*P*A' + Q               Eq.(10)
+        P = np.dot(np.dot(A, P), A.T) + Q
+        return x[0:2]
+
+    def update(self, z):
+
+        # Refer to :Eq.(11), Eq.(12) and Eq.(13)  in https://machinelearningspace.com/object-tracking-simple-implementation-of-kalman-filter-in-python/?preview_id=1364&preview_nonce=52f6f1262e&preview=true&_thumbnail_id=1795
+        # S = H*P*H'+R
+        S = np.dot(H, np.dot(P, H.T)) + R
+
+        # Calculate the Kalman Gain
+        # K = P * H'* inv(H*P*H'+R)
+        K = np.dot(np.dot(P, H.T), np.linalg.inv(S))  #Eq.(11)
+
+        x = np.round(x + np.dot(K, (z - np.dot(H, x))))   #Eq.(12)
+
+        I = np.eye(H.shape[1])
+
+        # Update error covariance matrix
+        P = (I - np.dot(K , H)) * P == np.dot((I - np.dot(K , H)), P)  #Eq.(13)
+        return x[0:2]
+

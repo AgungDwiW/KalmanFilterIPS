@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon May  4 20:13:47 2020
+
+@author: temperantia
+"""
+
+import csv
+import networkx as nx
+
+def loadDataset(name):
+    data = []
+    with open(name, newline='') as f:
+        reader = csv.reader(f)
+        reader = list(reader)
+    data = reader.copy()
+    return data
+
+def createGraph(filename):
+    graph = nx.Graph() #Graph() untuk undirected graph
+    f = open(filename, 'r')
+    for line in f:
+        listEdge = line.split(",")
+        graph.add_edge(int(listEdge[0]),int(listEdge[1]))
+    
+    f.close()
+    return graph
+
+
+graph = createGraph("edgeListMatrix.csv")
+temp = loadDataset("FeatureMatrix.csv")
+
+#use only day feature 
+feature = []
+for item in temp:
+    feature.append([item[0]])
+
+centrality = nx.degree_centrality(graph)
+
+for i in range(len(centrality)):
+    feature[i].append(centrality[i])
+    
+cluster = nx.clustering(graph)
+for i in range(len(centrality)):
+    feature[i].append(cluster[i])
+    
+from sklearn.linear_model import LinearRegression as lm
+import matplotlib.pyplot as plt 
+from mpl_toolkits.mplot3d import Axes3D
+
+def testLM(feature, indexX, indexY, rate, indexXto = -1):
+    fTrain = feature[0:int(len(feature)*rate)]
+    fTest = feature[int(len(feature)*rate):]
+    
+    x_train =[]
+    x_test = []
+    y_train = []
+    y_test = []
+    
+    for item in fTrain:
+        if(indexXto!=-1): 
+            x_train.append(item[indexX:indexXto+1])
+        else: 
+            x_train.append([item[indexX]])
+        y_train.append(int(item[indexY]))
+        
+    for item in fTest:
+        if(indexXto!=-1): 
+            x_test.append(item[indexX:indexXto+1])
+        else: 
+            x_test.append([item[indexX]])
+        y_test.append(int(item[indexY]))
+    
+    lmodel = lm().fit(x_train, y_train)
+    y_pred = lmodel.predict(x_test)
+    if(indexXto!=-1):
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        x= []
+        y = []
+        z = y_pred
+        for item in x_test:
+            x.append(item[0])
+            y.append(item[1])
+            
+        ax.scatter3D(x,y,y_test)
+        
+        ax.plot(x,y,z, 'grey')
+        
+        fig.show()
+        
+        
+
+    else:
+        plt.scatter(x_test, y_test, color ='b') 
+        plt.plot(x_test,y_pred)
+        plt.show()
+        
+    return lmodel.coef_
+
+
+coef1 = testLM(feature, 1,0, 0.8)
+coef2 = testLM(feature, 2,0, 0.8)
+coef3 = testLM(feature, 1,0,0.8,2)
+
+colormap = {0:"#00E503", 1:"#9cdf00", 2:"#da8000", 3:"#d4001b", 4:"#cf00ae", 5:"#5900c9", 6:"#0035c4", 7:"00bcbf"}
+color = (colormap[int(i[0])] for i in feature)
+            
+fig= plt.figure(figsize=(20,20))
+
+pos= nx.spring_layout(graph)
+"""
+nx.draw_networkx_nodes(graph, pos, node_size = [i[1]*5000*2.45078583 + i[2] *5000 *-1.39021292  for i in feature], 
+                       node_color = [int(i[0]) for i in feature], cmap = plt.cm.Set1)
+nx.draw_networkx_edges(graph, pos, width = [i[1]*1*2.45078583 + i[2] *1 *-1.39021292  for i in feature])
+"""
+
+nx.draw_networkx(graph, pos, node_size = [i[1]*500*2.45078583 + i[2] *500 *-1.39021292 +100  for i in feature], 
+                      node_color = [int(i[0]) for i in feature], cmap = plt.cm.Set1,
+                      width = [0  for i in feature], with_labels = False)
+
+
