@@ -67,8 +67,9 @@ public class MainActivity extends AppCompatActivity {
     public int x3 = 475;
     public int y3 = 460;
 
-    //console
+    //console and logging
     public TextView console;
+    public TextView actCoor;
     public int n;
     public List<String[]> log = new ArrayList<String[]>(); //to save the measurements to csv
     private String csv;
@@ -99,12 +100,13 @@ public class MainActivity extends AppCompatActivity {
         dist2 = findViewById(R.id.dist2);
         dist3 = findViewById(R.id.dist3);
 
-        //console
+        //console and logging
+        actCoor = findViewById(R.id.actCoor);
         console = findViewById(R.id.console);
         console.setMovementMethod(new ScrollingMovementMethod());
         n=1;
-        TextView print = findViewById(R.id.print);
-        TextView clear = findViewById(R.id.clear);
+        Button print = findViewById(R.id.print);
+        Button clear = findViewById(R.id.clear);
         print.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -112,11 +114,11 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-        print.setOnClickListener(new View.OnClickListener() {
+        clear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 log.clear();
-
+                printConsole("log cleared");
             }
         });
 
@@ -128,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
           Creating log header
         ======================*/
         ArrayList<String> temp = new ArrayList<>();
+        temp.add("actual coordinate" );
         temp.add("rssi1" );
         temp.add("distance1");
         temp.add("rssi2" );
@@ -145,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
         log.add(temp2);
 
         /* ==================
-          Starting background scanning
+          Binding buttons
         ======================*/
         start = findViewById(R.id.start);
         start.setOnClickListener(new View.OnClickListener() {
@@ -155,6 +158,9 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+
+
 
     }
 
@@ -177,153 +183,155 @@ public class MainActivity extends AppCompatActivity {
                     printConsole("--------------------- ");
                 }
             });
-            while(true) {
+            //while(true) {
                 //main loop
-                if (flag == 1) { //stop
-                    return "ended";
-                }
-                List<ScanResult> results;
+            if (flag == 1) { //stop
+                return "ended";
+            }
+            List<ScanResult> results;
 
-                level1 = level2 = level3 = 0;
-                counter1 = counter2 = counter3=0;
+            level1 = level2 = level3 = 0;
+            counter1 = counter2 = counter3=0;
 
-                for (int x = 0; x < sampling_rate; x++) {
-                    //======================================================================
-                    //getting rssi
-                    //======================================================================
-
-                    if (!wifiManager.startScan()) {
-                        x -= 1;
-                        continue;
-                    }
-                    results = wifiManager.getScanResults();
-                    for (ScanResult scanResult : results) {
-                        //assigning the rssis
-                        if (scanResult.BSSID.equals(BSSID1)) {
-                            level1 += scanResult.level;
-                            counter1 += 1;
-                        } else if (scanResult.BSSID.equals(BSSID2)) {
-                            level2 += scanResult.level;
-                            counter2 += 1;
-                        } else if (scanResult.BSSID.equals(BSSID3)) {
-                            level3 += scanResult.level;
-                            counter3 += 1;
-                        }
-                    }
-                    /*
-                    final int xx = x;
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            printConsole(xx + "/" + sampling_rate);
-                        }
-                    });
-                    */
-                    sleep(sleep_time);
-                }
-
+            for (int x = 0; x < sampling_rate; x++) {
                 //======================================================================
-                //process the rssi
+                //getting rssi
                 //======================================================================
-                double dist1,dist2,dist3;
-                final double distance1, distance2, distance3;
 
-                dist1 = dist2 = dist3 = 0;
-                if(counter1 != 0) {
-                    level1 = level1 / counter1;
-                    dist1 = getDistance(level1, A1, N1) *100;
+                if (!wifiManager.startScan()) {
+                    x -= 1;
+                    continue;
                 }
-                if(counter2 != 0) {
-                    level2 = level2 / counter2;
-                    dist2 = getDistance(level2, A2, N2) * 100;
+                results = wifiManager.getScanResults();
+                for (ScanResult scanResult : results) {
+                    //assigning the rssis
+                    if (scanResult.BSSID.equals(BSSID1)) {
+                        level1 += scanResult.level;
+                        counter1 += 1;
+                    } else if (scanResult.BSSID.equals(BSSID2)) {
+                        level2 += scanResult.level;
+                        counter2 += 1;
+                    } else if (scanResult.BSSID.equals(BSSID3)) {
+                        level3 += scanResult.level;
+                        counter3 += 1;
+                    }
                 }
-                if(counter3 != 0) {
-                    level3 = level3 / counter3;
-                    dist3 = getDistance(level3, A3, N3) * 100;
-                }
-
-                distance1 = dist1; distance2 = dist2; distance3 = dist3;
+                /*
+                final int xx = x;
 
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        changeDist(Math.round(distance1*100)/100+"", Math.round(distance2*100)/100+"", Math.round(distance3*100)/100+"");
+                        printConsole(xx + "/" + sampling_rate);
+                    }
+                });
+                */
+                sleep(sleep_time);
+            }
+
+            //======================================================================
+            //process the rssi
+            //======================================================================
+            double dist1,dist2,dist3;
+            final double distance1, distance2, distance3;
+
+            dist1 = dist2 = dist3 = 0;
+            if(counter1 != 0) {
+                level1 = level1 / counter1;
+                dist1 = getDistance(level1, A1, N1) *100;
+            }
+            if(counter2 != 0) {
+                level2 = level2 / counter2;
+                dist2 = getDistance(level2, A2, N2) * 100;
+            }
+            if(counter3 != 0) {
+                level3 = level3 / counter3;
+                dist3 = getDistance(level3, A3, N3) * 100;
+            }
+
+            distance1 = dist1; distance2 = dist2; distance3 = dist3;
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    changeDist(Math.round(distance1*100)/100+"", Math.round(distance2*100)/100+"", Math.round(distance3*100)/100+"");
+                }
+            });
+
+            if (!(counter1 == 0 || counter2 == 0 || counter3 == 0)){
+                //======================================================================
+                //calculate the coordinate
+                //======================================================================
+                final double[][] coord = getCoord(distance1,distance2, distance3);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        printConsole("===================================");
+                        printConsole("rssi1 : " + level1);
+                        printConsole("rssi2 : " + level2);
+                        printConsole("rssi3: " + level3);
+                        printConsole("distance 1 :" + distance1);
+                        printConsole("distance 2 :" + distance2);
+                        printConsole("distance 3 :" + distance3);
+
                     }
                 });
 
-                if (!(counter1 == 0 || counter2 == 0 || counter3 == 0)){
-                    //======================================================================
-                    //calculate the coordinate
-                    //======================================================================
-                    final double[][] coord = getCoord(distance1,distance2, distance3);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            printConsole("===================================");
-                            printConsole("rssi1 : " + level1);
-                            printConsole("rssi2 : " + level2);
-                            printConsole("rssi3: " + level3);
-                            printConsole("distance 1 :" + distance1);
-                            printConsole("distance 2 :" + distance2);
-                            printConsole("distance 3 :" + distance3);
+                //======================================================================
+                //apply kalman filter
+                //======================================================================
+                final double [][] predi = KF.predict();
+                final double[][] update = KF.update(coord);
 
-                        }
-                    });
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        printConsole("-----------------------------------");
+                        printConsole("measured : " + coord[0][0] + ","+coord[1][0] );
+                        printConsole("predicted : " + predi[0][0] + ","+predi[1][0]);
+                        printConsole("estimated : " + update[0][0] + ","+update[1][0]);
+                        printConsole("===================================");
+                        changeCoor(coord, predi, update);
+                    }
+                });
 
-                    //======================================================================
-                    //apply kalman filter
-                    //======================================================================
-                    final double [][] predi = KF.predict();
-                    final double[][] update = KF.update(coord);
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            printConsole("-----------------------------------");
-                            printConsole("measured : " + coord[0][0] + ","+coord[1][0] );
-                            printConsole("predicted : " + predi[0][0] + ","+predi[1][0]);
-                            printConsole("estimated : " + update[0][0] + ","+update[1][0]);
-                            printConsole("===================================");
-                            changeCoor(coord, predi, update);
-                        }
-                    });
-
-                    //======================================================================
-                    //saving log
-                    //======================================================================
-                    ArrayList<String> temp = new ArrayList<>();
-                    temp.add("" + level1);
-                    temp.add(""+ distance1);
-                    temp.add("" + level2);
-                    temp.add(""+ distance2);
-                    temp.add("" + level3);
-                    temp.add(""+ distance3);
-                    temp.add(""+ coord[0][0]);
-                    temp.add(""+ coord[1][0]);
-                    temp.add(""+ predi[0][0]);
-                    temp.add(""+ predi[1][0]);
-                    temp.add(""+ update[0][0]);
-                    temp.add(""+ update[1][0]);
-                    String [] temp2 = new String[temp.size()];
-                    temp2 = temp.toArray(temp2);
-                    log.add(temp2);
+                //======================================================================
+                //saving log
+                //======================================================================
+                ArrayList<String> temp = new ArrayList<>();
+                temp.add("" + actCoor.getText());
+                temp.add("" + level1);
+                temp.add(""+ distance1);
+                temp.add("" + level2);
+                temp.add(""+ distance2);
+                temp.add("" + level3);
+                temp.add(""+ distance3);
+                temp.add(""+ coord[0][0]);
+                temp.add(""+ coord[1][0]);
+                temp.add(""+ predi[0][0]);
+                temp.add(""+ predi[1][0]);
+                temp.add(""+ update[0][0]);
+                temp.add(""+ update[1][0]);
+                String [] temp2 = new String[temp.size()];
+                temp2 = temp.toArray(temp2);
+                log.add(temp2);
 
 
-                }
-                else{
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            printConsole("===================================");
-                            printConsole("rssi missing");
-                            printConsole("===================================");
-                            double [][] dummy ={{-1},{-1}};
-                            changeCoor(dummy, dummy, dummy);
-                        }
-                    });
-                }
             }
+            else{
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        printConsole("===================================");
+                        printConsole("rssi missing");
+                        printConsole("===================================");
+                        double [][] dummy ={{-1},{-1}};
+                        changeCoor(dummy, dummy, dummy);
+                    }
+                });
+            }
+            //}
+            return "";
         }
 
         @Override
@@ -360,6 +368,7 @@ public class MainActivity extends AppCompatActivity {
             writer.writeAll(log);
             writer.close();
         } catch (IOException e) {
+            printConsole("error in exporting data, size data : "+ log.size() );
             e.printStackTrace();
         }
         printConsole("exported all "+ log.size() + "data to "+ csv);
@@ -386,7 +395,6 @@ public class MainActivity extends AppCompatActivity {
                 console.scrollBy(0, scrollDelta);
         }
     }
-
 
     public double[][] getCoord(double r1, double r2, double  r3){
         //calculate trilateration from 3 radius return {{x},{y}}
