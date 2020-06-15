@@ -11,6 +11,8 @@ import random
 from os.path import join
 import matplotlib.pyplot as plt
 import json
+import pandas as pd
+
 
 def loadDataset(name):
     data = []
@@ -23,11 +25,20 @@ def loadDataset(name):
 def getDistance(rssi, a, n):
     return pow(10, -1*((rssi-a)/(10*n)))
 
-def doDist(filename ,a , n):
+def doDist(filename ,a , n, BSSID):
     data = loadDataset(filename)
-    dataset = [int (i[3]) for i in data]
+    
+    #extract rssi
+    rssi  = []
+    for item in data:
+        count = 0
+        for atom in item:
+            if atom == BSSID:
+                rssi.append(int(item[count+1]))
+            count+=1
+        
     dist = []
-    for item in dataset:
+    for item in rssi:
         dist.append(getDistance(item,a,n))
     return dist
 
@@ -44,36 +55,50 @@ def getStatistic(acc):
             dictElement[item] = 1
         else:
             dictElement[item] += 1
-    return dictElement
+    avg = sum(acc) / len(acc)
+    return dictElement, avg
 
-def createGraph(dataset, filename):
+def createGraph(dataset, filename, label):
     x = [ round(i,2) for i in dataset.keys()]
     plt.bar(x, dataset.values())
     plt.xlabel("Error (m)")
     plt.ylabel("Error count")
+    plt.title(label)
     plt.savefig(filename)
     plt.show()
 
-def printJSON(dataset, filename):
+def printToCSV(dataset, filename):
+    out = [["measurement", "measurement count"]]
+    for item in dataset.keys():
+        out.append([item, dataset[item]])
+    mylist = out
+    filename+=".csv"
+    
     with open(filename, 'w', newline="") as myfile:
-        json.dump(dataset, myfile)
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        for item in mylist:
+            wr.writerow(item)
 
 if __name__ == "__main__":
+    dataset = "dataset13"
     
     """
     ==================================
     loading constant variables
     ==================================
     """
-    constant =loadDataset(join("output", "constant variables"))
-    a_tp = float(constant[1][2])
-    n_tp = float(constant[1][3])
+    constant =loadDataset(join("output", "constant variables.csv"))
+    bssid_ap1 = constant[1][1]
+    a_ap1 = float(constant[1][2])
+    n_ap1 = float(constant[1][3])
     
-    a_hp = float(constant[2][2])
-    n_hp = float(constant[2][3])
+    bssid_ap2 = constant[2][1]
+    a_ap2 = float(constant[2][2])
+    n_ap2 = float(constant[2][3])
     
-    a_dp = float(constant[3][2])
-    n_dp = float(constant[3][3])
+    bssid_ap3 = constant[3][1]
+    a_ap3 = float(constant[3][2])
+    n_ap3 = float(constant[3][3])
     
     
     """
@@ -83,74 +108,59 @@ if __name__ == "__main__":
     """
     
     #loading dataset and calculate distance and path loss
-    tp_1_1 = doDist(join("dataset6", "tp-1-1.csv"), a_tp, n_tp)
-    acc_tp_1_1 = doAcc(tp_1_1, 1)
+    ap1_1_2 = doDist(join(dataset, "ap1-1-2.csv"), a_ap1, n_ap1, bssid_ap1)
+    acc_ap1_1_2 = doAcc(ap1_1_2, 1)
     
-    tp_1_2 = doDist(join("dataset6", "tp-1-2.csv"), a_tp, n_tp)
-    acc_tp_1_2 = doAcc(tp_1_2, 1)
+    ap1_2_2 = doDist(join(dataset, "ap1-2-2.csv"), a_ap1, n_ap1, bssid_ap1)
+    acc_ap1_2_2 = doAcc(ap1_2_2, 2)
     
-    tp_2_1 = doDist(join("dataset6", "tp-2-1.csv"), a_tp, n_tp)
-    acc_tp_2_1 = doAcc(tp_2_1, 2)
+    ap1_3_2 = doDist(join(dataset, "ap1-3-2.csv"), a_ap1, n_ap1, bssid_ap1)
+    acc_ap1_3_2 = doAcc(ap1_3_2, 3)
     
-    tp_2_2 = doDist(join("dataset6", "tp-2-2.csv"), a_tp, n_tp)
-    acc_tp_2_2 = doAcc(tp_2_2, 2)
-    
-    tp_3_1 = doDist(join("dataset6", "tp-3-1.csv"), a_tp, n_tp)
-    acc_tp_3_1 = doAcc(tp_3_1, 3)
-    
-    tp_3_2 = doDist(join("dataset6", "tp-3-2.csv"), a_tp, n_tp)
-    acc_tp_3_2 = doAcc(tp_3_2, 3)
-    
-    acc_tp_1 = acc_tp_1_1 + acc_tp_1_2
-    acc_tp_2 = acc_tp_2_1 + acc_tp_2_2
-    acc_tp_3 = acc_tp_3_1 + acc_tp_3_2
+    ap1_4_2 = doDist(join(dataset, "ap1-4-2.csv"), a_ap1, n_ap1, bssid_ap1)
+    acc_ap1_4_2 = doAcc(ap1_3_2, 4)
     
     #get statistic of path loss
-    stat_tp_1 = getStatistic(acc_tp_1)
-    stat_tp_2 = getStatistic(acc_tp_2)
-    stat_tp_3 = getStatistic(acc_tp_3)
+    stat_ap1_1, avg_ap1_1 = getStatistic(acc_ap1_1_2)
+    stat_ap1_2, avg_ap1_2 = getStatistic(acc_ap1_2_2)
+    stat_ap1_3, avg_ap1_3 = getStatistic(acc_ap1_3_2)
+    stat_ap1_4, avg_ap1_4 = getStatistic(acc_ap1_4_2)
     #create graph
-    createGraph(stat_tp_1, join("output", "tp_1 "))
-    createGraph(stat_tp_2, join("output", "tp_2 "))
-    createGraph(stat_tp_3, join("output", "tp_3 "))
+    createGraph(stat_ap1_1, join("output", "ap1_1 "), "AP 1, distance 1 meter")
+    createGraph(stat_ap1_2, join("output", "ap1_2 "), "AP 1, distance 2 meter")
+    createGraph(stat_ap1_3, join("output", "ap1_3 "), "AP 1, distance 3 meter")
+    createGraph(stat_ap1_4, join("output", "ap1_4 "), "AP 1, distance 4 meter")
     
     """
     ==================================
     AP-2 HandPhone
-    ==================================
+    ================================== 
     """
     
     #loading dataset and calculate distance and path loss
-    hp_1_1 = doDist(join("dataset6", "hp-1-1.csv"), a_hp, n_hp)
-    acc_hp_1_1 = doAcc(hp_1_1, 1)
+    ap2_1_2 = doDist(join(dataset, "tt-1-2.csv"), a_ap2, n_ap2, bssid_ap2)
+    acc_ap2_1_2 = doAcc(ap2_1_2, 1)
     
-    hp_1_2 = doDist(join("dataset6", "hp-1-2.csv"), a_hp, n_hp)
-    acc_hp_1_2 = doAcc(hp_1_2, 1)
+    ap2_2_2 = doDist(join(dataset, "tt-2-2.csv"), a_ap2, n_ap2, bssid_ap2)
+    acc_ap2_2_2 = doAcc(ap2_2_2, 2)
     
-    hp_2_1 = doDist(join("dataset6", "hp-2-1.csv"), a_hp, n_hp)
-    acc_hp_2_1 = doAcc(hp_2_1, 2)
+    ap2_3_2 = doDist(join(dataset, "tt-3-2.csv"), a_ap2, n_ap2, bssid_ap2)
+    acc_ap2_3_2 = doAcc(ap2_3_2, 3)
     
-    hp_2_2 = doDist(join("dataset6", "hp-2-2.csv"), a_hp, n_hp)
-    acc_hp_2_2 = doAcc(hp_2_2, 2)
-    
-    hp_3_1 = doDist(join("dataset6", "hp-3-1.csv"), a_hp, n_hp)
-    acc_hp_3_1 = doAcc(hp_3_1, 3)
-    
-    hp_3_2 = doDist(join("dataset6", "hp-3-2.csv"), a_hp, n_hp)
-    acc_hp_3_2 = doAcc(hp_3_2, 3)
-    
-    acc_hp_1 = acc_hp_1_1 + acc_hp_1_2
-    acc_hp_2 = acc_hp_2_1 + acc_hp_2_2
-    acc_hp_3 = acc_hp_3_1 + acc_hp_3_2
+    ap2_4_2 = doDist(join(dataset, "tt-4-2.csv"), a_ap2, n_ap2, bssid_ap2)
+    acc_ap2_4_2 = doAcc(ap2_4_2, 4)
     
     #get statistic of path loss
-    stat_hp_1 = getStatistic(acc_hp_1)
-    stat_hp_2 = getStatistic(acc_hp_2)
-    stat_hp_3 = getStatistic(acc_hp_3)
+    stat_ap2_1, avg_ap2_1 = getStatistic(acc_ap2_1_2)
+    stat_ap2_2, avg_ap2_2 = getStatistic(acc_ap2_2_2)
+    stat_ap2_3, avg_ap2_3 = getStatistic(acc_ap2_3_2)
+    stat_ap2_4, avg_ap2_4 = getStatistic(acc_ap2_4_2)
+    
     #create graph
-    createGraph(stat_hp_1, join("output", "hp_1 "))
-    createGraph(stat_hp_2, join("output", "hp_2 "))
-    createGraph(stat_hp_3, join("output", "hp_3 "))
+    createGraph(stat_ap2_1, join("output", "tt_1 "), "AP 2, distance 1 meter")
+    createGraph(stat_ap2_2, join("output", "tt_2 "), "AP 2, distance 2 meter")
+    createGraph(stat_ap2_3, join("output", "tt_3 "), "AP 2, distance 3 meter")
+    createGraph(stat_ap2_4, join("output", "tt_3 "), "AP 2, distance 4 meter")
     
     """
     ==================================
@@ -158,49 +168,77 @@ if __name__ == "__main__":
     ==================================
     """
     #loading dataset and calculate distance and path loss
-    dp_1_1 = doDist(join("dataset6", "dp-1-1.csv"), a_dp, n_dp)
-    acc_dp_1_1 = doAcc(dp_1_1, 1)
+    ap3_1_2 = doDist(join(dataset, "dp-1-2.csv"), a_ap3, n_ap3, bssid_ap3)
+    acc_ap3_1_2 = doAcc(ap3_1_2, 1)
     
-    dp_1_2 = doDist(join("dataset6", "dp-1-2.csv"), a_dp, n_dp)
-    acc_dp_1_2 = doAcc(dp_1_2, 1)
+    ap3_2_2 = doDist(join(dataset, "dp-2-2.csv"), a_ap3, n_ap3, bssid_ap3)
+    acc_ap3_2_2 = doAcc(ap3_2_2, 2)
     
-    dp_2_1 = doDist(join("dataset6", "dp-2-1.csv"), a_dp, n_dp)
-    acc_dp_2_1 = doAcc(dp_2_1, 2)
     
-    dp_2_2 = doDist(join("dataset6", "dp-2-2.csv"), a_dp, n_dp)
-    acc_dp_2_2 = doAcc(dp_2_2, 2)
+    ap3_3_2 = doDist(join(dataset, "dp-3-2.csv"), a_ap3, n_ap3, bssid_ap3)
+    acc_ap3_3_2 = doAcc(ap3_3_2, 3)
     
-    dp_3_1 = doDist(join("dataset6", "dp-3-1.csv"), a_dp, n_dp)
-    acc_dp_3_1 = doAcc(dp_3_1, 3)
-    
-    dp_3_2 = doDist(join("dataset6", "dp-3-2.csv"), a_dp, n_dp)
-    acc_dp_3_2 = doAcc(dp_3_2, 3)
-    
-    acc_dp_1 = acc_dp_1_1 + acc_dp_1_2
-    acc_dp_2 = acc_dp_2_1 + acc_dp_2_2
-    acc_dp_3 = acc_dp_3_1 + acc_dp_3_2
+    ap3_4_2 = doDist(join(dataset, "dp-4-2.csv"), a_ap3, n_ap3, bssid_ap3)
+    acc_ap3_4_2 = doAcc(ap3_4_2, 3)
     
     #get statistic of path loss
-    stat_dp_1 = getStatistic(acc_dp_1)
-    stat_dp_2 = getStatistic(acc_dp_2)
-    stat_dp_3 = getStatistic(acc_dp_3)
+    stat_ap3_1, avg_ap3_1 = getStatistic(acc_ap3_1_2)
+    stat_ap3_2, avg_ap3_2 = getStatistic(acc_ap3_2_2)
+    stat_ap3_3, avg_ap3_3 = getStatistic(acc_ap3_3_2)
+    stat_ap3_4, avg_ap3_4 = getStatistic(acc_ap3_4_2)
+    
     #create graph
-    createGraph(stat_dp_1, join("output", "dp_1 "))
-    createGraph(stat_dp_2, join("output", "dp_2 "))
-    createGraph(stat_dp_3, join("output", "dp_3 "))
+    createGraph(stat_ap3_1, join("output", "ap3_1 "), "AP 3, distance 1 meter")
+    createGraph(stat_ap3_2, join("output", "ap3_2 "), "AP 3, distance 2 meter")
+    createGraph(stat_ap3_3, join("output", "ap3_3 "), "AP 3, distance 3 meter")
+    createGraph(stat_ap3_4, join("output", "ap3_3 "), "AP 3, distance 4 meter")
+    
+    """
+    Analysing
+    """
+    
+    stat_ap1_1["avg"] = avg_ap1_1
+    stat_ap1_2["avg"] = avg_ap1_2
+    stat_ap1_3["avg"] = avg_ap1_3
+    stat_ap1_4["avg"] = avg_ap1_4
+    
+    stat_ap2_1["avg"] = avg_ap2_1
+    stat_ap2_2["avg"] = avg_ap2_2
+    stat_ap2_3["avg"] = avg_ap2_3
+    stat_ap2_4["avg"] = avg_ap2_4
+    
+    stat_ap3_1["avg"] = avg_ap3_1
+    stat_ap3_2["avg"] = avg_ap3_2
+    stat_ap3_3["avg"] = avg_ap3_3
+    stat_ap3_4["avg"] = avg_ap3_4
+    
+    col = ["ap1", "ap2", "ap3"]
+    
+    data = [[ stat_ap1_1['avg'],  stat_ap2_1['avg'], stat_ap3_1['avg'],],
+            [ stat_ap1_2['avg'],  stat_ap2_2['avg'], stat_ap3_2['avg'],],
+            [ stat_ap1_3['avg'],  stat_ap2_3['avg'], stat_ap3_3['avg'],],
+            [ stat_ap1_4['avg'],  stat_ap2_4['avg'], stat_ap3_4['avg'],],
+        ]
+    
+    dataf = pd.DataFrame(columns = col, data = data)
+
     
     """
     printing output
     """
     
-    printJSON(stat_tp_1, join("output", "stat_tp_1"))
-    printJSON(stat_tp_2, join("output", "stat_tp_2"))
-    printJSON(stat_tp_3, join("output", "stat_tp_3"))
+   
     
-    printJSON(stat_hp_1, join("output", "stat_hp_1"))
-    printJSON(stat_hp_2, join("output", "stat_hp_2"))
-    printJSON(stat_hp_3, join("output", "stat_hp_3"))
+    printToCSV(stat_ap1_1, join("output", "stat_ap1_1"))
+    printToCSV(stat_ap1_2, join("output", "stat_ap1_2"))
+    printToCSV(stat_ap1_3, join("output", "stat_ap1_3"))
+    printToCSV(stat_ap1_4, join("output", "stat_ap1_4"))
     
-    printJSON(stat_dp_1, join("output", "stat_dp_1"))
-    printJSON(stat_dp_2, join("output", "stat_dp_2"))
-    printJSON(stat_dp_3, join("output", "stat_dp_3"))
+    printToCSV(stat_ap2_1, join("output", "stat_ap2_1"))
+    printToCSV(stat_ap2_2, join("output", "stat_ap2_2"))
+    printToCSV(stat_ap2_3, join("output", "stat_ap2_3"))
+    printToCSV(stat_ap2_3, join("output", "stat_ap2_3"))
+    
+    printToCSV(stat_ap3_1, join("output", "stat_ap3_1"))
+    printToCSV(stat_ap3_2, join("output", "stat_ap3_2"))
+    printToCSV(stat_ap3_3, join("output", "stat_ap3_3"))

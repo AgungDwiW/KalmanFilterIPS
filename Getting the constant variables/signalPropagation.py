@@ -5,6 +5,10 @@ import math
 import csv
 import random
 from os.path import join
+import statistics
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def loadDataset(name):
     data = []
@@ -17,11 +21,17 @@ def loadDataset(name):
 def getN(rssi, a,d):
     return  ( -1 * (rssi -a)/ (10 * math.log10(d)))
 
-def averageDataset(filename):
+def averageDataset(filename, BSSID):
     #load dataset
     dataset = loadDataset(filename)
     #extract rssi
-    rssi = [int(i[3]) for i in dataset]
+    rssi  = []
+    for item in dataset:
+        count = 0
+        for atom in item:
+            if atom == BSSID:
+                rssi.append(int(item[count+1]))
+            count+=1
     #get average rssi
     avg = sum(rssi) / len (rssi)
     #return average rssi
@@ -29,57 +39,207 @@ def averageDataset(filename):
 
 def printCSV(filename, mylist):
     with open(filename, 'w', newline="") as myfile:
-        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr = csv.writer(myfile)
         for item in mylist:
             wr.writerow(item)
-            
+
+
+def getDistance(rssi, a, n):
+    return pow(10, -1*((rssi-a)/(10*n)))
+
+def doDist(filename ,a , n, BSSID):
+    data = loadDataset(filename)
+    
+    #extract rssi
+    rssi  = []
+    for item in data:
+        count = 0
+        for atom in item:
+            if atom == BSSID:
+                rssi.append(int(item[count+1]))
+            count+=1
+        
+    dist = []
+    for item in rssi:
+        dist.append(getDistance(item,a,n))
+    return dist
+
+def doAcc(dataset, trueDist):
+    acc = []
+    for item in dataset:
+        acc.append(abs(item - trueDist))
+    return acc
+
+def getStatistic(acc):
+    dictElement = {}
+    for item in acc:
+        if item not in dictElement:
+            dictElement[item] = 1
+        else:
+            dictElement[item] += 1
+    avg = sum(acc) / len(acc)
+    return dictElement, avg
+
+def getAcc (filename, Tdist, a, n, bssid):
+    dist = doDist(filename, a, n, bssid)
+    acc = doAcc(dist, Tdist)
+    stat, avg = getStatistic(acc)
+    stdev = statistics.stdev(acc)
+    return avg
+    
+
 if __name__ == "__main__":
+    
+    bssid = ["c0:25:e9:7a:e6:2f", "14:4d:67:98:2b:64", "18:0f:76:91:f2:72"]
+    ap = [1,2,3]
+    ssid = ["TP-LINK_E630", "TOTOLINK_N210RE", "D-Link_DIR-612"]
+    x_ap = [0, 300, 600 ]
+    y_ap = [0, 400, 0]
+    """
+    name format: datasetxx/apy-z-w.csv
+    """
+    datasetSerial = 13
+    z= [1,2,3,4]
+    w_train = 1
+    w_test = 2
+    
+    
     
     """
     ==============================
     Geting A
     ======================================
     """
-    #load dataset
-    #dataset is 1000 measurement of each RSSI of AP at 1 metre distance to android device
-    #A is RSSI recorded at 1 meter distance
-    a_TP = averageDataset(join("dataset6", "tp-1-1.csv"))
-    a_HP = averageDataset(join("dataset6", "hp-1-1.csv"))
-    a_DP = averageDataset(join("dataset6", "dp-1-1.csv"))
-    
-    
+    a = []
+    count = 0
+    for item in range(len(bssid)):
+        filename = (join("dataset{}".format(datasetSerial),
+                         "ap{}-{}-{}.csv".format(ap[count], 1, w_train)))
+        a.append(averageDataset(filename, bssid[count]))
+        count+=1
     
     """
     ==============================
     Geting n
+    
+    ....|dist
+    ap   
+    
     ======================================
     """
-    #load dataset
-    #dataset is 1000 measurement of each RSSI of AP at 2 metre distance to android device
-    #n taken by giving RSSI value at 2 meter distance   
-    #average the data
-    avgTP2 = averageDataset(join("dataset6", "tp-2-2.csv"))
-    avgHP2= averageDataset(join("dataset6", "hp-2-1.csv"))
-    avgDP2 = averageDataset(join("dataset6", "dp-2-1.csv"))
     
-    n_TP = getN(avgTP2, a_TP, 2)
-    n_HP = getN(avgHP2, a_HP, 2)
-    n_DP = getN(avgDP2, a_DP, 2)
+    avg2 = []
+    n = []
+    count = 0
+    countZ = 1
+    for count in range(len(ap)):
+        n_now = []
+        for countZ in range(1, len(z)):
+            
+            filename = (join("dataset{}".format(datasetSerial),
+                             "ap{}-{}-{}.csv".format(ap[count], z[countZ], w_train)))
+            avg = averageDataset(filename, bssid[count])
+            avg2.append(avg)
+            
+            n_now.append(getN(avg, a[count], z[countZ]))
+        n.append(n_now)
+
+    
     
     """
     ==============================
-    Printing output
+    testing
+    
+    ....|dist
+    ap   
+    
     ======================================
     """
-    #getting attribut of each dataset
-    tp = loadDataset(join("dataset3", "tp-1.csv"))[0]
-    hp = loadDataset(join("dataset3", "hp-1.csv"))[0]
-    dp = loadDataset(join("dataset3", "dp-1.csv"))[0]
-    output = [["SSID", "BSSID", "A", "n"],
-              [tp[1], tp[2], a_TP, n_TP],
-              [hp[1], hp[2], a_HP, n_HP],
-              [dp[1], dp[2], a_DP, n_DP]]
+    #ap1
+    stat = []
+    stat_avg = []
+    for ap_now in ap: #itterating each ap
+        
+        stat_now = []
+        stat_now_avg= []
+        for zCount in range (len(z)-1): #each n for current ap
+            n_now = n[ap_now-1][zCount]
+            avg= []
+            
+            for dCount in range(len(z)): #calculating the accuracy of a and n to data in various distance
+                filename = (join("dataset{}".format(datasetSerial),
+                             "ap{}-{}-{}.csv".format(ap_now, z[dCount], w_test)))
+                avg.append(getAcc(filename, z[dCount], a[ap_now-1], n_now, bssid[ap_now-1]))
+                
+            avg_avg =sum(avg)/len(avg)
+            avg.append(avg_avg)
+            stat_now_avg.append(avg_avg)
+            stat_now.append(avg)
+        stat.append(stat_now)
+        stat_avg.append(stat_now_avg)
+               
     
-    printCSV(join("output", "constant variables"),output)
+    
+    """
+    ==============================
+    Visualizing
+    ======================================
+    """
+    #AP1 ----------------------------------------------------------
+    frames = []
+    for item in range(len(ap)):
+        n_AP = [i[item] for i in n]
+        stat_AP = np.transpose(stat[item])
+        dataAP = pd.DataFrame(columns = n_AP, data = stat_AP)
+        dataAP['N'] = ['1 meter', '2 meter', '3 meter', '4 meter', 'avg']
+        frames.append(dataAP)
+    
+    lines = ["b-", "y-", "r-", "g-"]
+    titles = ["AP1", "AP2", "AP3"]
+    xlabel = "distance"
+    ylabel = "loss (m)"
+    titleC = 0
+    for ap_now in stat: #each ap
+        lineC = 0
+        for n_now in ap_now: #each n
+            x = list(range(len(n_now)))
+            plt.plot(x, n_now, lines[lineC])
+            lineC+=1
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(titles[titleC])
+        plt.show()
+        titleC+=1
+            
+    """
+    ==============================
+    Selecting best data
+    ======================================
+    """
+    bestN = [0 for i in range(len(ap))]
+    cur_ap = 0
+    bestLoss = [0 for i in range(len(ap))]
+    for each_ap in stat:
+        min_loss = np.inf
+        cur_n = 0
+        for each_n in each_ap:
+            if(each_n[-1] < min_loss):
+                bestN[cur_ap] = n[cur_ap][cur_n]
+                min_loss = each_n[-1]
+                bestLoss[cur_ap] = each_n[-1]
+            cur_n+=1
+        cur_ap+=1
+    """
+    ==============================
+    Printing
+    ======================================
+    """
+    printed = [["SSID", "BSSID", "A", "n", "x", "y"]]
+    
+    for i in range(len(ap)):
+        printed.append([ssid[i], bssid[i], a[i], bestN[i], x_ap[i], y_ap[i]])
+        
+    printCSV(join ("output", "constant variables.csv"),printed)
+    
     
     

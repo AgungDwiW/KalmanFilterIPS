@@ -7,6 +7,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.Layout;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
@@ -16,7 +17,9 @@ import android.widget.TextView;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import com.opencsv.CSVWriter;
@@ -26,8 +29,18 @@ import static java.lang.Math.pow;
 
 public class MainActivity extends AppCompatActivity {
     //customable var
-    public int sampling_rate = 25; // how many sample taken to get a coordinate
-    public int sleep_time = 40; // how much time interval between each sample
+    public int sampling_rate = 100; // how many sample taken to get a coordinate
+    public int sleep_time = 10; // how much time interval between each sample
+    public String[] route = {"(100,100)", "(300,100)", "(500,100)", "(500,500)", "(300,300)", "(100,300)"};
+    public int count = -1;
+    public String curPoint = route[0];
+    public double dt = 1;
+    public double u_x = 1;
+    public double u_y = 1;
+    public double std_acc = 200;
+    public double x_std_meas = 26.685953817092763;
+    public double y_std_meas = 35.51794321423258;
+
 
     /* Kalman Filter args
     :param dt: sampling time (time for 1 cycle)
@@ -37,35 +50,37 @@ public class MainActivity extends AppCompatActivity {
     :param x_std_meas: standard deviation of the measurement in x-direction
     :param y_std_meas: standard deviation of the measurement in y-direction
     */
-    private KalmanFilter KF = new KalmanFilter(0.1, 1, 1, 1, 0.1,0.1);
+    public KalmanFilter KF;
 
     /* Current setting
-     * SSID	                BSSID       	    A	        N
-     * Ephemeral blessing	ce:73:14:c4:7a:28	-63.555	    2.18345215481207
-     * Elfais	            18:0f:76:91:f2:72	-47.43	    3.40041922816446
-     * TP-LINK_E630	        c0:25:e9:7a:e6:30	-54.685	    2.87070468917083
+     * "SSID",                  "BSSID",                "A",        "n",                    "x",    "y"
+     * "TP-LINK_E630",          "c0:25:e9:7a:e6:2f",    "-31.868",  "3.8212191560717515",  "0",     "0"
+     * "TOTOLINK_N210RE"        "ce:73:14:c4:7a:28",    "-33.88",   "2.821745367236229",   "300",   "400"
+     * "D-Link_DIR-612",        "18:0f:76:91:f2:72",    "-42.791",  "2.8803998698559017",  "600",   "0"
+
+
      *
      * A = RSSI taken at 1 meter point
      * N = noise covariance calculated from experiment
      */
 
-    public String BSSID1 = "ce:73:14:c4:7a:28";
-    public double A1 = -63.555;
-    public double N1 = 2.18345215481207;
-    public int x1 = 320;
+    public String BSSID1 = "c0:25:e9:7a:e6:2f";
+    public double A1 = -43.571;
+    public double N1 = 4.501212568572377;
+    public int x1 = 0;
     public int y1 = 0;
 
-    public String BSSID2 = "18:0f:76:91:f2:72";
-    public double A2 = -47.43;
-    public double N2 = 3.40041922816446;
-    public int x2 = 0;
-    public int y2 = 460;
+    public String BSSID2 = "14:4d:67:98:2b:64";
+    public double A2 = -38.402;
+    public double N2 = 3.462113460491608;
+    public int x2 = 300;
+    public int y2 = 300;
 
-    public String BSSID3 = "c0:25:e9:7a:e6:2f";
-    public double A3 = -54.685;
-    public double N3 = 2.87070468917083;
-    public int x3 = 475;
-    public int y3 = 460;
+    public String BSSID3 = "18:0f:76:91:f2:72";
+    public double A3 = -41.519;
+    public double N3 = 4.715809123502101;
+    public int x3 = 600;
+    public int y3 = 0;
 
     //console and logging
     public TextView console;
@@ -80,10 +95,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     public int flag = 1;
+    public boolean started = false;
     //cordinates
     public TextView measured, predicted, estimated;
     public Button start;
     public TextView dist1,dist2,dist3;
+    public TextView t_count;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,7 +118,8 @@ public class MainActivity extends AppCompatActivity {
         dist3 = findViewById(R.id.dist3);
 
         //console and logging
-        actCoor = findViewById(R.id.actCoor);
+        actCoor = findViewById(R.id.point);
+        t_count = findViewById(R.id.count);
         console = findViewById(R.id.console);
         console.setMovementMethod(new ScrollingMovementMethod());
         n=1;
@@ -117,8 +135,7 @@ public class MainActivity extends AppCompatActivity {
         clear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                log.clear();
-                printConsole("log cleared");
+                clearAll();
             }
         });
 
@@ -280,6 +297,12 @@ public class MainActivity extends AppCompatActivity {
                 //======================================================================
                 //apply kalman filter
                 //======================================================================
+                if (!started){
+                    KF = new KalmanFilter(dt, u_x, u_y, std_acc, x_std_meas, y_std_meas, coord[0][0], coord[1][0]);
+                    // public KalmanFilter(double dt, double u_x, double u_y, double std_acc, double x_std_meas,
+                    //                        double y_std_meas, double init_x, double init_y) {
+                    started = true;
+                }
                 final double [][] predi = KF.predict();
                 final double[][] update = KF.update(coord);
 
@@ -292,6 +315,10 @@ public class MainActivity extends AppCompatActivity {
                         printConsole("estimated : " + update[0][0] + ","+update[1][0]);
                         printConsole("===================================");
                         changeCoor(coord, predi, update);
+                        count += 1;
+                        curPoint = route[count% route.length];
+                        actCoor.setText(curPoint);
+                        t_count.setText(count+"");
                     }
                 });
 
@@ -346,9 +373,9 @@ public class MainActivity extends AppCompatActivity {
     public void changeCoor(double [][] meas, double[][] pred, double[][] estim){
         //utility function to change text
         DecimalFormat df = new DecimalFormat("#.0");
-        measured.setText("" + df.format(meas[0][0]) + "," + df.format(meas[1][0]));
-        predicted.setText("" + df.format(pred[0][0]) + "," + df.format(pred[1][0]));
-        estimated.setText("" + df.format(estim[0][0]) + "," + df.format(estim[1][0]));
+        measured.setText("" + df.format(meas[0][0]) + " , " + df.format(meas[1][0]));
+        predicted.setText("" + df.format(pred[0][0]) + " , " + df.format(pred[1][0]));
+        estimated.setText("" + df.format(estim[0][0]) + " , " + df.format(estim[1][0]));
     }
 
     public void changeDist(String d1, String d2, String d3){
@@ -362,7 +389,9 @@ public class MainActivity extends AppCompatActivity {
         //utility function to print csv
         try {
             String uuid = UUID.randomUUID().toString();
-            csv = (getExternalFilesDir(null) + "/log"+uuid + ".csv"); // Here csv file name is MyCsvFile.csv
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yy-HH:mm");
+            String currentDateandTime = sdf.format(new Date());
+            csv = (Environment.getExternalStorageDirectory().getAbsolutePath()+ "/"+  t_count.getText().toString() + " at " + currentDateandTime + ".csv"); // Here csv file name is MyCsvFile.csv
             CSVWriter writer = null;
             writer = new CSVWriter(new FileWriter(csv));
             writer.writeAll(log);
@@ -414,7 +443,13 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
-
+    public void clearAll(){
+        log.clear();
+        started = false;
+        count= -1;
+        curPoint = route[0];
+        printConsole("log cleared");
+    }
 
 
 }

@@ -19,7 +19,7 @@ public class KalmanFilter {
 
 
     public KalmanFilter(double dt, double u_x, double u_y, double std_acc, double x_std_meas,
-                        double y_std_meas) {
+                        double y_std_meas, double init_x, double init_y) {
 		/*
         :param dt: sampling time (time for 1 cycle)
         :param u_x: acceleration in x-direction
@@ -29,11 +29,11 @@ public class KalmanFilter {
         :param y_std_meas: standard deviation of the measurement in y-direction
         */
         //Define the  control input variables
-        double[][] temp ={{1}, {1}};
+        double[][] temp ={{u_x}, {u_y}};
         this.u = new  Array2DRowRealMatrix(temp);
 
         //Intial State
-        double[][] temp2 ={{0}, {0}, {0}, {0}};
+        double[][] temp2 ={{init_x}, {init_y}, {u_x}, {u_y}};
         this.x = new  Array2DRowRealMatrix(temp2);
 
         // Define the State Transition Matrix A
