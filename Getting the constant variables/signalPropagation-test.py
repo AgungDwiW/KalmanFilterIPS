@@ -78,6 +78,7 @@ def printToCSV(dataset, filename):
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         for item in mylist:
             wr.writerow(item)
+            
 
 if __name__ == "__main__":
     dataset = "dataset13"

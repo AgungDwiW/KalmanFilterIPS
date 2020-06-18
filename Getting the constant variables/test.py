@@ -47,7 +47,7 @@ def avg(lists):
     return sum(lists) / len(lists)
 
 if __name__ == "__main__":
-    data = loadDataset(join("dataset12", "test.csv"))
+    data = loadDataset(join("dataset14", "f1000.csv"))
     constant =loadDataset(join("output", "constant variables.csv"))
     a = []
     n = []

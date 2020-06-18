@@ -19,7 +19,8 @@ def loadDataset(name):
     return data
 
 def getN(rssi, a,d):
-    return  ( -1 * (rssi -a)/ (10 * math.log10(d)))
+    n =( -1 * (rssi -a)/ (10 * math.log10(d)))
+    return   float("{:.4f}".format(n))
 
 def averageDataset(filename, BSSID):
     #load dataset
@@ -84,8 +85,8 @@ def getAcc (filename, Tdist, a, n, bssid):
     dist = doDist(filename, a, n, bssid)
     acc = doAcc(dist, Tdist)
     stat, avg = getStatistic(acc)
-    stdev = statistics.stdev(acc)
-    return avg
+    
+    return float("{:.4f}".format(avg))
     
 
 if __name__ == "__main__":
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     ap   
     
     ======================================
-    """
+    """ 
     
     avg2 = []
     n = []
@@ -171,7 +172,7 @@ if __name__ == "__main__":
                              "ap{}-{}-{}.csv".format(ap_now, z[dCount], w_test)))
                 avg.append(getAcc(filename, z[dCount], a[ap_now-1], n_now, bssid[ap_now-1]))
                 
-            avg_avg =sum(avg)/len(avg)
+            avg_avg =float("{:.4f}".format(sum(avg)/len(avg)))
             avg.append(avg_avg)
             stat_now_avg.append(avg_avg)
             stat_now.append(avg)
@@ -188,26 +189,28 @@ if __name__ == "__main__":
     #AP1 ----------------------------------------------------------
     frames = []
     for item in range(len(ap)):
-        n_AP = [i[item] for i in n]
+        n_AP = ["%.4f"%i for i in n[item]]
         stat_AP = np.transpose(stat[item])
         dataAP = pd.DataFrame(columns = n_AP, data = stat_AP)
-        dataAP['N'] = ['1 meter', '2 meter', '3 meter', '4 meter', 'avg']
+        dataAP['Distance'] = ['1 meter', '2 meter', '3 meter', '4 meter', 'avg']
         frames.append(dataAP)
     
     lines = ["b-", "y-", "r-", "g-"]
     titles = ["AP1", "AP2", "AP3"]
-    xlabel = "distance"
-    ylabel = "loss (m)"
+    xlabel = "Distance"
+    ylabel = "Loss (m)"
     titleC = 0
-    for ap_now in stat: #each ap
+    for ap_now in range(len(stat)): #each ap
         lineC = 0
-        for n_now in ap_now: #each n
-            x = list(range(len(n_now)))
-            plt.plot(x, n_now, lines[lineC])
+        for n_now in range(len(stat[ap_now])): #each n
+            x = list(range(len(stat[ap_now][n_now])))
+            plt.plot(x, stat[ap_now][n_now], lines[lineC], label= "n = %.3f" % n[ap_now][n_now])
+            plt.legend()
             lineC+=1
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.title(titles[titleC])
+        plt.title(titles[titleC] + " ( A= {} )".format(a[ap_now]))
+        plt.savefig(join( join( "output", "plot"), titles[titleC] + " - signal propagation"))
         plt.show()
         titleC+=1
             
@@ -241,5 +244,10 @@ if __name__ == "__main__":
         
     printCSV(join ("output", "constant variables.csv"),printed)
     
+    count = 1
+    for item in frames:
+        item.to_csv(join(join("output", "acc AP"), "AP{}.csv".format(count)), 
+                    index=False, header  = True)
+        count+=1
     
     

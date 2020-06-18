@@ -100,7 +100,9 @@ if __name__ == "__main__":
     loading dataset
     ==================================
     """
-    dataset = loadDataset(join("dataset11", "sd.csv"))
+    dataset = loadDataset(join("dataset15", "sd_at_18-06-20-1300(1).csv"))
+    
+    
     x = []
     y = []
     dist_tp=[]
