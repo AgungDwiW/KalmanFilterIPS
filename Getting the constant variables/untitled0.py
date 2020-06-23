@@ -13,6 +13,8 @@ import pandas as pd
 from KalmanFilter import KalmanFilter
 import numpy as np
 import statistics
+import matplotlib.pyplot as plt
+
 def loadDataset(name):
     data = []
     with open(name, newline='') as f:
@@ -96,7 +98,7 @@ def euclidDist(v1, v2):
     return math.sqrt(dist)
 
 def drawRoomOnly():
-    
+    import matplotlib.pyplot as plt
     #drawing the room
     for item in range(len(x)): #drawing the AP
         plt.scatter(x[item], y[item], s = 20, color = "k",)
@@ -120,6 +122,7 @@ def drawRoomOnly():
                                          (trueLoc[item][0] - 50,trueLoc[item][1] + 10))
         
 def drawRoom(scattered, title):
+    import matplotlib.pyplot as plt
     drawRoomOnly()
     color = ["gold", "navy", "slategrey", "springgreen", "orangered", "aqua"] 
     est = scattered
@@ -141,10 +144,10 @@ if __name__ == "__main__":
     ==================================
     """
     
-    data = loadDataset(join("dataset15", "all at 16-06-20-15 00.csv"))
-    constant =loadDataset(join("output", "constant variables.csv"))
+    data = loadDataset(join("dataset", "all at 16-06-20-15 00.csv"))
+    constant =loadDataset(join(join(join("..","Getting constant variables"),"output"), "constant variables.csv"))
     
-    KF = KalmanFilter(dt = 1, u_x = 1 ,u_y = 1, std_acc = 200 , x_std_meas = 50, y_std_meas = 50 )
+    KF = KalmanFilter(dt = 1, u_x = 1 ,u_y = 1, std_acc = 1 , x_std_meas = 1, y_std_meas = 1 )
     a = []
     n = []
     x = []
@@ -182,14 +185,14 @@ if __name__ == "__main__":
             trueDist[item].append(euclidDist( [x[item], y[item]] , atom))
     
     label_point = list(trueLocX.keys())
-    
+    classes = ['a', 'b' , 'c', 'd','e', 'f']
     """
     ==================================
     Measuring distance and position
     ==================================
     """
     #average 100 data to one data
-    data = cleanNfold(bssid, data, 100, ['a', 'b', 'c', 'd', 'e', 'f'])
+    data = cleanNfold(bssid, data, 1, classes )
     
     column = ["label", "rssi1", "rssi2", "rssi3", 
               "dist1", "dist2", "dist3",
@@ -322,7 +325,7 @@ if __name__ == "__main__":
     summary_frame = pd.DataFrame(columns = column_summary, data = data)
     
     data_per_point = []
-    for item in label_point:
+    for item in classes:
         data_now = [item, 
                     avg(point_acc_dict[item]["acc dist1"]),
                     avg(point_acc_dict[item]["acc dist2"]),
@@ -360,7 +363,6 @@ if __name__ == "__main__":
     """
     
     
-    import matplotlib.pyplot as plt
     
     est = [route_frame["label"].values.tolist(), 
            route_frame["estimated x"].values.tolist(), 
@@ -440,4 +442,8 @@ if __name__ == "__main__":
     
     summary_per_point_frame.to_csv(join(join("output", "acc coord"), "summary_per_point.csv"), 
                     index=False, header  = True)
+    
+    plt.plot(route_frame['estimated x'], color = 'b')
+    plt.plot(route_frame['predicted x'], color = 'r')
+    
     

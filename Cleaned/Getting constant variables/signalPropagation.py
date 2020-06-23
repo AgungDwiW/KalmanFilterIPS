@@ -3,9 +3,7 @@
 
 import math
 import csv
-import random
 from os.path import join
-import statistics
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -185,16 +183,7 @@ if __name__ == "__main__":
     ==============================
     Visualizing
     ======================================
-    """
-    #AP1 ----------------------------------------------------------
-    frames = []
-    for item in range(len(ap)):
-        n_AP = ["%.4f"%i for i in n[item]]
-        stat_AP = np.transpose(stat[item])
-        dataAP = pd.DataFrame(columns = n_AP, data = stat_AP)
-        dataAP['Distance'] = ['1 meter', '2 meter', '3 meter', '4 meter', 'avg']
-        frames.append(dataAP)
-    
+    """      
     lines = ["b-", "y-", "r-", "g-"]
     titles = ["AP1", "AP2", "AP3"]
     xlabel = "Distance"
@@ -213,6 +202,19 @@ if __name__ == "__main__":
         plt.savefig(join( join( "output", "plot"), titles[titleC] + " - signal propagation"))
         plt.show()
         titleC+=1
+    
+    df = []
+    for item in  range(len(ap)):
+        for atom in range(0,3):    
+            df_n=["AP{}".format(item+1), a[item], (atom+1) *100]
+            df_n.append(avg2[item*3 + atom])
+            df_n.append(n[item][atom])
+            df_n.append(sum( stat[item][atom]) / len( stat[item][atom]) * 100)
+            df.append(df_n)
+    
+    df = pd.DataFrame(columns = ['Akses Poin', 'A', 'Jarak (cm)', "Rata - rata RSSI",
+                                 "n", 'Rata - rata error'], data = df)
+    
             
     """
     ==============================
@@ -243,11 +245,7 @@ if __name__ == "__main__":
         printed.append([ssid[i], bssid[i], a[i], bestN[i], x_ap[i], y_ap[i]])
         
     printCSV(join ("output", "constant variables.csv"),printed)
+    df.to_csv(join("output", "acc signal propagation.csv"))
     
-    count = 1
-    for item in frames:
-        item.to_csv(join(join("output", "acc AP"), "AP{}.csv".format(count)), 
-                    index=False, header  = True)
-        count+=1
     
     

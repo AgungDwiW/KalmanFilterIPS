@@ -228,8 +228,8 @@ if __name__ == "__main__":
     ==================================
     """
     
-    data = loadDataset(join("dataset15", "all at 16-06-20-15 00.csv"))
-    constant =loadDataset(join("output", "constant variables.csv"))
+    data = loadDataset(join("dataset", "all at 16-06-20-15 00.csv"))
+    constant =loadDataset(join(join(join("..","Getting constant variables"),"output"), "constant variables.csv"))
     
    
     a = []
@@ -508,3 +508,6 @@ if __name__ == "__main__":
     
     avg(route_frame['rssi1'])
     avg(route_frame['KF rssi1'])
+    
+    plt.plot(route_frame['rssi1'].values)
+    plt.plot(route_frame['KF rssi1'])
